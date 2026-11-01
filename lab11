@@ -1,0 +1,71 @@
+import machine
+import time
+
+# Set up the passive buzzer on GPIO 26
+buzzer = machine.PWM(machine.Pin(26))
+buzzer.duty(0)
+
+# Define musical notes
+C4 = 262
+D4 = 294
+E4 = 330
+F4 = 349
+G4 = 392
+A4 = 440
+B4 = 494
+
+# Set up touch sensor pins and their notes
+touch_pins = [
+    machine.TouchPad(machine.Pin(4)),
+    machine.TouchPad(machine.Pin(15)),
+    machine.TouchPad(machine.Pin(13)),
+    machine.TouchPad(machine.Pin(12)),
+    machine.TouchPad(machine.Pin(27)),
+    machine.TouchPad(machine.Pin(33)),
+    machine.TouchPad(machine.Pin(32))
+]
+
+notes = [C4, D4, E4, F4, G4, A4, B4]
+
+# Calibrate touch sensors when nothing is touching them
+print("Calibrating touch sensors...")
+
+baseline = []
+
+for pin in touch_pins:
+    total = 0
+    for i in range(10):
+        total += pin.read()
+        time.sleep_ms(50)
+    baseline.append(total // 10)
+
+# Set touch thresholds
+thresholds = [value * 0.70 for value in baseline]
+
+print("Ready to play Fruit Piano!")
+
+# Main program
+try:
+    while True:
+        playing = False
+
+        for i in range(len(touch_pins)):
+            value = touch_pins[i].read()
+
+            # Detect when a touch pin is touched
+            if value < thresholds[i]:
+                buzzer.freq(notes[i])
+                buzzer.duty(512)
+                playing = True
+                break
+
+        # Stop buzzer when no pin is touched
+        if not playing:
+            buzzer.duty(0)
+
+        time.sleep_ms(20)
+
+except KeyboardInterrupt:
+    buzzer.duty(0)
+    buzzer.deinit()
+    print("Fruit Piano stopped")
